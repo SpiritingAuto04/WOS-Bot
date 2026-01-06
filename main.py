@@ -324,15 +324,15 @@ def is_package_installed(package_name):
 UPDATE_SOURCES = [
     {
         "name": "GitHub",
-        "api_url": "https://api.github.com/repos/whiteout-project/bot/releases/latest",
+        "api_url": "https://api.github.com/repos/SpiritingAuto04/WOS-Bot/releases/latest",
         "primary": True
     },
-    {
-        "name": "GitLab",
-        "api_url": "https://gitlab.whiteout-bot.com/api/v4/projects/1/releases",
-        "project_id": 1,
-        "primary": False
-    }
+    #{
+    #    "name": "GitLab",
+    #    "api_url": "https://gitlab.whiteout-bot.com/api/v4/projects/1/releases",
+    #    "project_id": 1,
+    #    "primary": False
+    #}
     # Can add more sources here as needed
 ]
 
@@ -1285,4 +1285,5 @@ if __name__ == "__main__":
             pass  # Already handled by signal handler
 
     if __name__ == "__main__":
+
         run_bot()
