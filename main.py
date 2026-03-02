@@ -33,7 +33,28 @@ if sys.version_info < MIN_PYTHON:
     sys.exit(1)
 
 def is_container() -> bool:
-    return os.path.exists("/.dockerenv") or os.path.exists("/var/run/secrets/kubernetes.io")
+    # Docker, Kubernetes, Podman - simple marker file checks
+    marker_files = ["/.dockerenv", "/var/run/secrets/kubernetes.io", "/run/.containerenv"]
+    if any(os.path.exists(path) for path in marker_files):
+        return True
+
+    # LXC - check init process environment
+    try:
+        with open("/proc/1/environ", "r") as f:
+            if "container=lxc" in f.read():
+                return True
+    except (IOError, OSError):
+        pass
+
+    # Systemd-nspawn - check container type file
+    try:
+        with open("/run/systemd/container", "r") as f:
+            if f.read() == "systemd-nspawn\n":
+                return True
+    except (IOError, OSError):
+        pass
+
+    return False
 
 def is_ci_environment() -> bool:
     """Check if running in a CI environment"""
@@ -1126,7 +1147,7 @@ if __name__ == "__main__":
     create_tables()
 
     async def load_cogs():
-        cogs = ["olddb", "control", "alliance", "alliance_member_operations", "bot_operations", "logsystem", "support_operations", "gift_operations", "changes", "w", "wel", "other_features", "bear_trap", "bear_trap_schedule", "id_channel", "backup_operations", "bear_trap_editor", "bear_trap_templates", "bear_trap_wizard", "attendance", "attendance_report", "minister_schedule", "minister_menu", "minister_archive", "registration"]
+        cogs = ["pimp_my_bot", "olddb", "control", "alliance", "alliance_member_operations", "bot_operations", "logsystem", "support_operations", "gift_operations", "changes", "w", "wel", "other_features", "bear_trap", "bear_trap_schedule", "id_channel", "backup_operations", "bear_trap_editor", "bear_trap_templates", "bear_trap_wizard", "attendance", "attendance_report", "minister_schedule", "minister_menu", "minister_archive", "registration"]
 
         failed_cogs = []
         
@@ -1219,19 +1240,26 @@ if __name__ == "__main__":
     def run_bot():
         import signal
 
-        shutdown_messages = [
-            "🛑 Ctrl+C detected! The bot is powering down... beep boop!",
-            "👋 Caught Ctrl+C! Time for the bot to take a nap. Sweet dreams!",
-            "🔌 Ctrl+C pressed! Unplugging the bot. See you next time!",
-            "🚪 Exit signal received! The bot has left the building...",
-            "💤 Ctrl+C! The bot is going to sleep. Wake me up when you need me!",
-            "🎬 And that's a wrap! Bot shutting down gracefully.",
-            "🌙 Trying to turn the bot off and not on again. Ctrl+C ya later!",
-            "✨ Ctrl+C and poof! The bot vanishes into thin air...",
-        ]
-
         def get_shutdown_message():
             import random
+            try:
+                from cogs.pimp_my_bot import theme
+                shutdown_messages = [
+                    f"{theme.shutdownStopIcon} Ctrl+C detected! The bot is powering down... beep boop!",
+                    f"{theme.shutdownHandIcon} Caught Ctrl+C! Time for the bot to take a nap. Sweet dreams!",
+                    f"{theme.shutdownPlugIcon} Ctrl+C pressed! Unplugging the bot. See you next time!",
+                    f"{theme.shutdownDoorIcon} Exit signal received! The bot has left the building...",
+                    f"{theme.shutdownZzzIcon} Ctrl+C! The bot is going to sleep. Wake me up when you need me!",
+                    f"{theme.shutdownClapperIcon} And that's a wrap! Bot shutting down gracefully.",
+                    f"{theme.shutdownMoonIcon} Trying to turn the bot off and not on again. Ctrl+C ya later!",
+                    f"{theme.shutdownSparkleIcon} Ctrl+C and poof! The bot vanishes into thin air...",
+                ]
+            except Exception:
+                # Fallback if theme not loaded yet
+                shutdown_messages = [
+                    "🛑 Ctrl+C detected! The bot is powering down... beep boop!",
+                    "👋 Caught Ctrl+C! Time for the bot to take a nap. Sweet dreams!",
+                ]
             return random.choice(shutdown_messages)
 
         async def start_bot():
